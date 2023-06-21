@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fractalk8s
+spec:
+  replicas: 16:
+  selector:
+    matchLabels:
+      app: fractalk8s
+  template:
+    metadata:
+      labels:
+        app: fractalk8s
+    spec:
+      containers:
+      - name: fractalk8s
+        image: k3d-myregistry.localhost:12345/fractalk8s:latest
+        ports:
+        - containerPort: 8080
+          name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fractalk8s
+spec:
+  selector:
+    app: fractalk8s
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

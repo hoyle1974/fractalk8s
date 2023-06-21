@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"net/http"
 	"strconv"
+
+	"github.com/rs/zerolog/log"
 )
 
 /*
@@ -74,19 +75,19 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 	cx := big.NewFloat(0.0)
 	cy := big.NewFloat(0.0)
 
-	log.Printf("x=%s y=%s i=%s\n", r.URL.Query().Get("x"), r.URL.Query().Get("y"), r.URL.Query().Get("i"))
+	log.Info().Msgf("x=%s y=%s i=%s\n", r.URL.Query().Get("x"), r.URL.Query().Get("y"), r.URL.Query().Get("i"))
 
 	cx, _, err := cx.Parse(r.URL.Query().Get("x"), 10)
 	if err != nil {
-		log.Fatalf("Error parsing i: %v", err)
+		log.Error().Err(err).Msg("Error parsing x")
 	}
 	cy, _, err = cx.Parse(r.URL.Query().Get("y"), 10)
 	if err != nil {
-		log.Fatalf("Error parsing y: %v", err)
+		log.Error().Err(err).Msg("Error parsing y")
 	}
 	iter, err := strconv.Atoi(r.URL.Query().Get("i"))
 	if err != nil {
-		log.Fatalf("Error parsing i: %v", err)
+		log.Error().Err(err).Msg("Error parsing i")
 	}
 
 	value, iter := mandelIteration(cx, cy, iter)
@@ -95,9 +96,10 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	log.Println("Setup Handler")
+	log.Info().Msg("Setup Handler")
 	http.HandleFunc("/iter", iterhandler)
 
-	log.Println("Listening on 8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Info().Msg("Listening on 8080")
+	err := http.ListenAndServe(":8080", nil)
+	log.Error().Err(err).Msg("Unexpected error")
 }
