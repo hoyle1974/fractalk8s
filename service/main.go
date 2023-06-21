@@ -33,7 +33,55 @@ var four = big.NewFloat(float64(4))
 var two = big.NewFloat(float64(2))
 var half = big.NewFloat(float64(0.5))
 
-func mandelIteration(cx, cy *big.Float, maxIter int) (*big.Float, int) {
+func mandelIteration3(bcx, bcy *big.Float, maxIter int) (*big.Float, int) {
+	// func Iter(p complex128, maxit uint) uint {
+	// z := p
+	p_real, _ := bcx.Float64()
+	p_imag, _ := bcy.Float64()
+
+	z_real := p_real
+	z_imag := p_imag
+
+	for it := 0; it < maxIter; it++ {
+		//z = z*z + p
+		temp_real := z_real*z_real - z_imag*z_imag
+		temp_imag := z_real*z_imag + z_real*z_imag
+		z_real = temp_real + p_real
+		z_imag = temp_imag + p_imag
+
+		// For better performance we use r^2 + i^2 > 4 instead of cmplx.Abs(z) > 2
+		// if r, i := real(z), imag(z); r*r+i*i > 4 {
+		if z_real*z_real+z_imag*z_imag > 4 {
+			return big.NewFloat(0), it
+		}
+	}
+
+	return big.NewFloat(0), maxIter
+
+}
+
+func mandelIteration1(bcx, bcy *big.Float, maxIter int) (*big.Float, int) {
+	cx, _ := bcx.Float64()
+	cy, _ := bcy.Float64()
+
+	var x, y, xx, yy float64 = 0.0, 0.0, 0.0, 0.0
+
+	for i := 0; i < maxIter; i++ {
+		xy := x * y
+		xx = x * x
+		yy = y * y
+		if xx+yy > 4 {
+			return big.NewFloat(xx + yy), i
+		}
+		x = xx - yy + cx
+		y = 2*xy + cy
+	}
+
+	logZn := (x*x + y*y) / 2
+	return big.NewFloat(logZn), maxIter
+}
+
+func mandelIteration2(cx, cy *big.Float, maxIter int) (*big.Float, int) {
 
 	x := big.NewFloat(0.0)
 	y := big.NewFloat(0.0)
@@ -81,7 +129,7 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error().Err(err).Msg("Error parsing x")
 	}
-	cy, _, err = cx.Parse(r.URL.Query().Get("y"), 10)
+	cy, _, err = cy.Parse(r.URL.Query().Get("y"), 10)
 	if err != nil {
 		log.Error().Err(err).Msg("Error parsing y")
 	}
@@ -90,8 +138,9 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Error parsing i")
 	}
 
-	value, iter := mandelIteration(cx, cy, iter)
+	value, iter := mandelIteration2(cx, cy, iter)
 
+	log.Info().Msgf("value=%v iter=%d", value.String(), iter)
 	fmt.Fprintf(w, "%v\n%d\n", value, iter)
 }
 

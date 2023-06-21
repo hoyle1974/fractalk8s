@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: fractalk8s
 spec:
-  replicas: 16:
+  replicas: 16
   selector:
     matchLabels:
       app: fractalk8s
