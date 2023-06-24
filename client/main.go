@@ -1,100 +1,158 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"log"
+	"math"
 	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/alitto/pond"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func calc(x, y *big.Float) int {
+func calc(client *http.Client, x, y []*big.Float, iter int) []int {
 
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8080/iter?x=%s&y=%s&i=10", x.String(), y.String()))
+	// fmt.Printf("Calc %d values\n", len(x))
+
+	req := ""
+	for i := 0; i < len(x); i++ {
+		if i == 0 {
+			req = fmt.Sprintf("%s,%s,%d", x[i].String(), y[i].String(), iter)
+		} else {
+			req = req + fmt.Sprintf("\n%s,%s,%d", x[i].String(), y[i].String(), iter)
+		}
+	}
+
+	// url := fmt.Sprintf("http://fractalk8s.decepticons.local/iter")
+	url := "http://localhost:8080/iter"
+	r, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(req)))
 	if err != nil {
 		panic(err)
 	}
+
+	resp, err := client.Do(r)
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
-	resp.Body.Close()
-	ii := strings.Split(string(body), "\n")[1]
-	i, _ := strconv.Atoi(ii)
-	return i
+
+	ii := strings.Split(string(body), ",")
+	if len(ii) != len(x) {
+		panic(fmt.Sprintf("We requested %d values, but received %d", len(x), len(ii)))
+	}
+
+	ret := make([]int, len(ii))
+	for idx, i := range ii {
+		iter, _ := strconv.Atoi(i)
+		ret[idx] = iter
+	}
+
+	return ret
+}
+
+const (
+	screenWidth  = 640
+	screenHeight = 640
+	maxIt        = 128
+	chunk        = 16
+	maxPoolSize  = (screenWidth/chunk)*(screenHeight/chunk) + 1
+	maxWorkers   = 32
+)
+
+var (
+	palette [maxIt]byte
+)
+
+func init() {
+	for i := range palette {
+		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
+	}
+}
+
+func color(it int) (r, g, b byte) {
+	if it == maxIt {
+		return 0xff, 0xff, 0xff
+	}
+	c := palette[it]
+	return (c * 3) % 255, ((c + 25) * 5) % 255, ((c + 128) * 7) % 255
+}
+
+type Game struct {
+	cam          Camera
+	offscreen    *ebiten.Image
+	offscreenPix []byte
+}
+
+func NewGame(cam Camera) *Game {
+	g := &Game{
+		cam:          cam,
+		offscreen:    ebiten.NewImage(screenWidth, screenHeight),
+		offscreenPix: make([]byte, screenWidth*screenHeight*4),
+	}
+	// Now it is not feasible to call updateOffscreen every frame due to performance.
+	g.updateOffscreen()
+	return g
+}
+
+func (gm *Game) updateOffscreen() {
+	pool := pond.New(maxWorkers, maxPoolSize)
+
+	t, _ := gm.cam.Scale.MarshalText()
+	fmt.Println(string(t))
+
+	for y := 0; y < screenHeight; y += chunk {
+		for x := 0; x < screenWidth; x += chunk {
+			pool.Submit(NewWorkerRequest(x, y, gm.cam.X, gm.cam.Y, gm.cam.Scale, gm.offscreenPix))
+		}
+	}
+
+	go func() {
+		pool.StopAndWait()
+		fmt.Println("tick")
+		gm.cam.Scale.Mul(gm.cam.Scale, big.NewFloat(0.5))
+		gm.updateOffscreen()
+	}()
+
+}
+
+func (g *Game) Update() error {
+	return nil
+}
+
+var t = 0
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	t++
+	if t > 10 {
+		g.offscreen.WritePixels(g.offscreenPix)
+		t = 0
+	}
+
+	screen.DrawImage(g.offscreen, nil)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }
 
 func main() {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Mandelbrot (Ebitengine Demo)")
 
-	temp := " .-:[]{}*0@"
+	cam := NewCamera(-1.9, 0.0, 4.0)
 
-	// m := mandelbrot.Mandelbrot(mandelbrot.Min, mandelbrot.Max, 20, 60, 9)
-
-	// for i := range m {
-	// 	fmt.Println(m[i])
-	// }
-
-	const mx = 150
-	const my = 50
-
-	var values [mx][my]int
-
-	pool := pond.New(100, mx*my+1)
-
-	for ty := 0; ty < my; ty++ {
-		for tx := 0; tx < mx; tx++ {
-			x := tx
-			y := ty
-			pool.Submit(func() {
-
-				xx := big.NewFloat(float64(x))
-				yy := big.NewFloat(float64(y))
-				xx.Quo(xx, big.NewFloat(mx))
-				xx.Mul(xx, big.NewFloat(2.8))
-				xx.Sub(xx, big.NewFloat(2.0))
-
-				yy.Quo(yy, big.NewFloat(my))
-				yy.Mul(yy, big.NewFloat(2.8))
-				yy.Sub(yy, big.NewFloat(1.4))
-
-				values[x][y] = calc(xx, yy)
-			})
-		}
+	if err := ebiten.RunGame(NewGame(cam)); err != nil {
+		log.Fatal(err)
 	}
-
-	for pool.CompletedTasks() != mx*my {
-
-		for y := 0; y < my; y++ {
-			for x := 0; x < mx; x++ {
-				fmt.Printf("%c", temp[values[x][y]])
-			}
-			fmt.Println("")
-
-		}
-	}
-	pool.StopAndWait()
-
-	/*
-		for x := -2.0; x < 0.8; x += 0.075 {
-			for y := -1.4; y < 1.4; y += 0.015 {
-				resp, err := http.Get(fmt.Sprintf("http://localhost:8080/iter?x=%f&y=%f&i=10", x, y))
-				if err != nil {
-					panic(err)
-				}
-				body, err := io.ReadAll(resp.Body)
-				if err != nil {
-					panic(err)
-				}
-				resp.Body.Close()
-				ii := strings.Split(string(body), "\n")[1]
-				i, _ := strconv.Atoi(ii)
-				fmt.Printf("%c", temp[i])
-			}
-			fmt.Println("")
-		}
-	*/
-
 }

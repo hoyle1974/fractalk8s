@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . /app
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GOOS=linux go build -o /cmd
 
 FROM gcr.io/distroless/static-debian11
 

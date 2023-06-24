@@ -1,4 +1,4 @@
-module github.com/hoyle1974/fractalk8s/service/mandelbrot
+module github.com/hoyle1974/fractalk8s/mandelbrot
 
 go 1.20
 

@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: fractalk8s
 spec:
-  replicas: 16
+  replicas: 64
   selector:
     matchLabels:
       app: fractalk8s
@@ -14,7 +14,8 @@ spec:
     spec:
       containers:
       - name: fractalk8s
-        image: k3d-myregistry.localhost:12345/fractalk8s:latest
+        #image: k3d-myregistry.localhost:12345/fractalk8s:latest
+        image: jstrohm/fractalk8s:latest
         ports:
         - containerPort: 8080
           name: http
@@ -30,3 +31,23 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: fractalk8s
+spec:
+  hosts:
+  - fractalk8s.decepticons.local
+  gateways:
+  - default/primary-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/"
+    - port: 80
+    route:
+    - destination:
+        host: fractalk8s.default.svc.cluster.local
+        port:
+          number: 8080
