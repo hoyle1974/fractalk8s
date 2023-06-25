@@ -13,7 +13,17 @@ import (
 
 	"github.com/alitto/pond"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hoyle1974/fractalk8s/mandelbrot"
 )
+
+func calc2(client *http.Client, x, y []*big.Float, iter int) []int {
+	ret := make([]int, len(x))
+	for idx, _ := range x {
+		_, ret[idx] = mandelbrot.Mandelbrot(x[idx], y[idx], iter)
+	}
+
+	return ret
+}
 
 func calc(client *http.Client, x, y []*big.Float, iter int) []int {
 
@@ -81,6 +91,8 @@ func init() {
 }
 
 func color(it int) (r, g, b byte) {
+	it = maxIt - it
+
 	if it == maxIt {
 		return 0xff, 0xff, 0xff
 	}
@@ -108,8 +120,7 @@ func NewGame(cam Camera) *Game {
 func (gm *Game) updateOffscreen() {
 	pool := pond.New(maxWorkers, maxPoolSize)
 
-	t, _ := gm.cam.Scale.MarshalText()
-	fmt.Println(string(t))
+	fmt.Printf("%s\n", gm.cam.Scale.Text('f', 150))
 
 	for y := 0; y < screenHeight; y += chunk {
 		for x := 0; x < screenWidth; x += chunk {
@@ -119,8 +130,8 @@ func (gm *Game) updateOffscreen() {
 
 	go func() {
 		pool.StopAndWait()
-		fmt.Println("tick")
-		gm.cam.Scale.Mul(gm.cam.Scale, big.NewFloat(0.5))
+		// fmt.Println("tick")
+		gm.cam.Scale.Mul(gm.cam.Scale, big.NewFloat(0.1))
 		gm.updateOffscreen()
 	}()
 
@@ -147,10 +158,14 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Mandelbrot (Ebitengine Demo)")
 
-	cam := NewCamera(-1.9, 0.0, 4.0)
+	x := big.NewFloat(-1.8)
+	y := big.NewFloat(0.0)
+
+	cam := NewCamera(x, y, big.NewFloat(4.0))
 
 	if err := ebiten.RunGame(NewGame(cam)); err != nil {
 		log.Fatal(err)
