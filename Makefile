@@ -14,8 +14,9 @@ docker: build-docker
 
 docker-public: build-docker
 	docker tag fractalk8s:$(VERSION) jstrohm/fractalk8s:$(VERSION)
+	docker tag fractalk8s:$(VERSION) jstrohm/fractalk8s:latest
 	docker push jstrohm/fractalk8s:$(VERSION)
-	docker tag jstrohm/fractalk8s:$(VERSION) jstrohm/fractalk8s:latest
+	docker push jstrohm/fractalk8s:latest
 
 build-fractalk8s:
 	docker build --tag k3d-myregistry.localhost:12345/fractalk8s:latest -f Dockerfile .
@@ -37,4 +38,5 @@ deploy-fractalk8s:
 fractalk8s: docker-public
 	-kubectl delete -f fractalk8s.yaml
 	kubectl create -f fractalk8s.yaml
+	@echo $(VERSION)
 

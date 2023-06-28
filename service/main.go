@@ -13,6 +13,7 @@ import (
 )
 
 func iterhandler(w http.ResponseWriter, r *http.Request) {
+	log.Info().Msg("Version 1")
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -40,7 +41,7 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 				log.Error().Err(err).Msg("Error parsing i")
 			}
 
-			_, iter = mandelbrot.Mandelbrot(cx, cy, iter)
+			iter = mandelbrot.MandelbrotFloat(cx, cy, iter)
 
 			if idx == 0 {
 				result = fmt.Sprintf("%d", iter)

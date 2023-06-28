@@ -12,7 +12,7 @@ var client = &http.Client{
 		MaxConnsPerHost:     100,
 		MaxIdleConnsPerHost: 100,
 	},
-	Timeout: 10 * time.Second,
+	Timeout: 0 * time.Second,
 }
 
 func NewWorkerRequest(x, y int, centerX, centerY, size *big.Float, out []byte) func() {
@@ -25,20 +25,22 @@ func NewWorkerRequest(x, y int, centerX, centerY, size *big.Float, out []byte) f
 		for i := 0; i < chunk; i++ {
 			for j := 0; j < chunk; j++ {
 				// Center around scrren
-				xx[ti] = big.NewFloat(float64(x + i - (screenWidth / 2)))
-				yy[ti] = big.NewFloat(float64(y + j - (screenHeight / 2)))
+				// txx := big.NewRat(int64(x+i-(screenWidth/2)), screenWidth)
+				txx := big.NewFloat(float64(x+i-(screenWidth/2)) / float64(screenWidth))
+
+				// tyy := big.NewRat(int64(y+j-(screenHeight/2)), screenHeight)
+				tyy := big.NewFloat(float64(y+j-(screenHeight/2)) / float64(screenHeight))
 
 				// scale
-				xx[ti].Quo(xx[ti], big.NewFloat(screenWidth)) // -.5 to .5
-				yy[ti].Quo(yy[ti], big.NewFloat(screenHeight))
-
-				// scale
-				xx[ti].Mul(xx[ti], size)
-				yy[ti].Mul(yy[ti], size)
+				txx = big.NewFloat(0).SetPrec(0).Mul(txx, size)
+				tyy = big.NewFloat(0).SetPrec(0).Mul(tyy, size)
 
 				// Offset
-				xx[ti].Add(xx[ti], centerX)
-				yy[ti].Add(yy[ti], centerY)
+				txx.Add(txx, centerX)
+				tyy.Add(tyy, centerY)
+
+				xx[ti] = txx
+				yy[ti] = tyy
 
 				ti++
 			}

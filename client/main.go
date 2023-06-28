@@ -8,18 +8,37 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/alitto/pond"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hoyle1974/fractalk8s/mandelbrot"
+)
+
+const (
+	screenWidth  = 640
+	screenHeight = 640
+	maxIt        = 256
+	chunk        = 16
+	maxPoolSize  = (screenWidth/chunk)*(screenHeight/chunk) + 1
+	maxWorkers   = 64
+)
+
+var (
+	palette [maxIt]byte
 )
 
 func calc2(client *http.Client, x, y []*big.Float, iter int) []int {
 	ret := make([]int, len(x))
 	for idx, _ := range x {
-		_, ret[idx] = mandelbrot.Mandelbrot(x[idx], y[idx], iter)
+		ret[idx] = mandelbrot.MandelbrotFloat(x[idx], y[idx], iter)
+
+		// cx, _ := x[idx].Float64()
+		// cy, _ := y[idx].Float64()
+		// ret[idx] = mandelbrot.MandelbrotFast(cx, cy, iter)
 	}
 
 	return ret
@@ -71,19 +90,6 @@ func calc(client *http.Client, x, y []*big.Float, iter int) []int {
 	return ret
 }
 
-const (
-	screenWidth  = 640
-	screenHeight = 640
-	maxIt        = 128
-	chunk        = 16
-	maxPoolSize  = (screenWidth/chunk)*(screenHeight/chunk) + 1
-	maxWorkers   = 32
-)
-
-var (
-	palette [maxIt]byte
-)
-
 func init() {
 	for i := range palette {
 		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
@@ -104,6 +110,7 @@ type Game struct {
 	cam          Camera
 	offscreen    *ebiten.Image
 	offscreenPix []byte
+	keys         []ebiten.Key
 }
 
 func NewGame(cam Camera) *Game {
@@ -120,7 +127,7 @@ func NewGame(cam Camera) *Game {
 func (gm *Game) updateOffscreen() {
 	pool := pond.New(maxWorkers, maxPoolSize)
 
-	fmt.Printf("%s\n", gm.cam.Scale.Text('f', 150))
+	//fmt.Printf("%s\n", gm.cam.Scale.Text('f', 150))
 
 	for y := 0; y < screenHeight; y += chunk {
 		for x := 0; x < screenWidth; x += chunk {
@@ -130,14 +137,46 @@ func (gm *Game) updateOffscreen() {
 
 	go func() {
 		pool.StopAndWait()
-		// fmt.Println("tick")
-		gm.cam.Scale.Mul(gm.cam.Scale, big.NewFloat(0.1))
+		//gm.cam.Scale.Mul(gm.cam.Scale, big.NewFloat(.95))
+		// fmt.Printf("Perceision: %d\n", gm.cam.Scale.Prec())
 		gm.updateOffscreen()
 	}()
 
 }
 
 func (g *Game) Update() error {
+	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
+
+	for _, key := range g.keys {
+		if key == ebiten.KeyArrowLeft {
+			// fmt.Println("LEFT")
+			g.cam.Left()
+		}
+		if key == ebiten.KeyArrowRight {
+			// fmt.Println("RIGHT")
+			g.cam.Right()
+		}
+		if key == ebiten.KeyArrowUp {
+			// fmt.Println("UP")
+			g.cam.Up()
+		}
+		if key == ebiten.KeyArrowDown {
+			// fmt.Println("DOWN")
+			g.cam.Down()
+		}
+		if key == ebiten.KeySpace {
+			// fmt.Println("ZOOM")
+			g.cam.In()
+		}
+		if key == ebiten.KeyShift {
+			// fmt.Println("ZOOM")
+			g.cam.Out()
+		}
+		if key == ebiten.KeyEscape {
+			os.Exit(0)
+		}
+	}
+
 	return nil
 }
 
@@ -158,14 +197,19 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	// temp := new(big.Float).SetInt64(4).SetPrec(1)
+	// for {
+	// 	temp.Mul(temp, new(big.Float).SetInt64(2))
+	// 	fmt.Printf("%d : %d : %s\n", temp.Prec(), temp.MinPrec(), temp.String())
+	// }
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Mandelbrot (Ebitengine Demo)")
 
-	x := big.NewFloat(-1.8)
-	y := big.NewFloat(0.0)
+	x := big.NewFloat(-1.94015736280000)
+	y := big.NewFloat(-8.66e-7)
 
-	cam := NewCamera(x, y, big.NewFloat(4.0))
+	cam := NewCamera(x, y, new(big.Float).SetInt64(4).SetPrec(16))
 
 	if err := ebiten.RunGame(NewGame(cam)); err != nil {
 		log.Fatal(err)
