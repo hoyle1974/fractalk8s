@@ -6,43 +6,35 @@ import (
 )
 
 type MRequest struct {
-	X    []string
-	Y    []string
-	Iter int
+	X, Y, Chunk, ScreenWidth, ScreenHeight, Iter int
+	CenterX, CenterY, Size                       string
 }
 
-func NewMRequest(x, y []*big.Float, iter int) MRequest {
+func NewMRequest(x, y, chunk, screenWidth, screenHeight int, centerX, centerY, size *big.Float, iter int) MRequest {
 
-	m := MRequest{
-		X:    make([]string, len(x)),
-		Y:    make([]string, len(y)),
-		Iter: iter,
+	return MRequest{
+		X:            x,
+		Y:            y,
+		Chunk:        chunk,
+		ScreenWidth:  screenHeight,
+		ScreenHeight: screenHeight,
+		Iter:         iter,
+		CenterX:      centerX.String(),
+		CenterY:      centerY.String(),
+		Size:         size.String(),
 	}
-
-	for i := 0; i < len(x); i++ {
-		m.X[i] = x[i].String()
-		m.Y[i] = y[i].String()
-	}
-
-	return m
 }
 
-func (m MRequest) Extract() ([]*big.Float, []*big.Float, int) {
-	x := make([]*big.Float, len(m.X))
-	y := make([]*big.Float, len(m.Y))
+func (m MRequest) ExtractFloats() (*big.Float, *big.Float, *big.Float) {
+	cx, _, _ := new(big.Float).Parse(m.CenterX, 10)
+	cy, _, _ := new(big.Float).Parse(m.CenterY, 10)
+	s, _, _ := new(big.Float).Parse(m.Size, 10)
 
-	for i := 0; i < len(x); i++ {
-		x[i], _, _ = new(big.Float).Parse(m.X[i], 10)
-		y[i], _, _ = new(big.Float).Parse(m.Y[i], 10)
-	}
-
-	return x, y, m.Iter
-
+	return cx, cy, s
 }
 
 func (m MRequest) ToJsonString() string {
 	jsonString, _ := json.Marshal(m)
-
 	return string(jsonString)
 }
 
@@ -52,6 +44,5 @@ func NewMRequestFromJson(jsonString string) MRequest {
 	if err != nil {
 		panic(err)
 	}
-
 	return m
 }

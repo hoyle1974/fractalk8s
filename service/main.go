@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -22,12 +23,43 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	request := common.NewMRequestFromJson(string(body))
-	cx, cy, iter := request.Extract()
+	//cx, cy, iter := request.Extract()
 
-	resultIter := make([]int, len(cx))
+	//for idx, _ := range cx {
+	//	resultIter[idx] = mandelbrot.MandelbrotFloat(cx[idx], cy[idx], iter)
+	//}
 
-	for idx, _ := range cx {
-		resultIter[idx] = mandelbrot.MandelbrotFloat(cx[idx], cy[idx], iter)
+	chunk := request.Chunk
+	x := request.X
+	y := request.Y
+	screenWidth := request.ScreenWidth
+	screenHeight := request.ScreenHeight
+	iter := request.Iter
+	centerX, centerY, size := request.ExtractFloats()
+
+	resultIter := make([]int, chunk*chunk)
+
+	idx := 0
+	for i := 0; i < chunk; i++ {
+		for j := 0; j < chunk; j++ {
+			// Center around scrren
+			// txx := big.NewRat(int64(x+i-(screenWidth/2)), screenWidth)
+			txx := big.NewFloat(float64(x+i-(screenWidth/2)) / float64(screenWidth))
+
+			// tyy := big.NewRat(int64(y+j-(screenHeight/2)), screenHeight)
+			tyy := big.NewFloat(float64(y+j-(screenHeight/2)) / float64(screenHeight))
+
+			// scale
+			txx = big.NewFloat(0).SetPrec(0).Mul(txx, size)
+			tyy = big.NewFloat(0).SetPrec(0).Mul(tyy, size)
+
+			// Offset
+			txx.Add(txx, centerX)
+			tyy.Add(tyy, centerY)
+
+			resultIter[idx] = mandelbrot.MandelbrotFloat(txx, tyy, iter)
+			idx++
+		}
 	}
 
 	end := time.Now()
