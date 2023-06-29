@@ -46,6 +46,8 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 
 	resultIter := make([]int, chunk*chunk)
 
+	small := size.Cmp(new(big.Float).SetFloat64(0.00000000000008)) > 0
+
 	idx := 0
 	for i := 0; i < chunk; i++ {
 		for j := 0; j < chunk; j++ {
@@ -64,8 +66,15 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 			txx.Add(txx, centerX)
 			tyy.Add(tyy, centerY)
 
-			resultIter[idx] = mandelbrot.MandelbrotFloat(txx, tyy, iter)
+			if small {
+				fx, _ := txx.Float64()
+				fy, _ := tyy.Float64()
+				resultIter[idx] = mandelbrot.MandelbrotFast(fx, fy, iter)
+			} else {
+				resultIter[idx] = mandelbrot.MandelbrotFloat(txx, tyy, iter)
+			}
 			idx++
+
 		}
 	}
 

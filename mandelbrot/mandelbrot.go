@@ -146,7 +146,7 @@ func MandelbrotFloat(x0, y0 *big.Float, maxIter int) int {
 	return maxIter
 }
 */
-
+/*
 func MandelbrotRat(x0, y0 *big.Rat, maxIter int) int {
 
 	x2 := big.NewRat(0, 1)
@@ -179,6 +179,7 @@ func MandelbrotRat(x0, y0 *big.Rat, maxIter int) int {
 
 	return maxIter
 }
+*/
 
 func testCardioid(x float64, y float64) bool {
 	a := (x - 1/4)

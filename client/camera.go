@@ -54,7 +54,7 @@ func (c *Camera) Up() {
 	defer c.Unlock()
 
 	c.dirty = true
-	c.Y.Add(c.Y, c.step())
+	c.Y.Sub(c.Y, c.step())
 }
 
 func (c *Camera) Down() {
@@ -62,7 +62,7 @@ func (c *Camera) Down() {
 	defer c.Unlock()
 
 	c.dirty = true
-	c.Y.Sub(c.Y, c.step())
+	c.Y.Add(c.Y, c.step())
 }
 
 func (c *Camera) In() {
