@@ -133,6 +133,12 @@ var t = 0
 func (g *Game) Draw(screen *ebiten.Image) {
 	t++
 	if t > 10 {
+		p := 4 * (((screenHeight / 2) * screenWidth) + (screenWidth / 2))
+		g.offscreenPix[p] = 0xff
+		g.offscreenPix[p+1] = 0xff
+		g.offscreenPix[p+2] = 0xff
+		g.offscreenPix[p+3] = 0xff
+
 		g.offscreen.WritePixels(g.offscreenPix)
 		t = 0
 	}
