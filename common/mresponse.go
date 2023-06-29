@@ -2,23 +2,26 @@ package common
 
 import (
 	"encoding/json"
+	"time"
 )
 
 type MResponse struct {
-	Iter []int
+	Iter     []int
+	CalcTime time.Duration
 }
 
-func NewMResponse(iter []int) MResponse {
+func NewMResponse(iter []int, calcTime time.Duration) MResponse {
 
 	m := MResponse{
-		Iter: iter,
+		Iter:     iter,
+		CalcTime: calcTime,
 	}
 
 	return m
 }
 
-func (m MResponse) Extract() []int {
-	return m.Iter
+func (m MResponse) Extract() ([]int, time.Duration) {
+	return m.Iter, m.CalcTime
 }
 
 func (m MResponse) ToJsonString() string {

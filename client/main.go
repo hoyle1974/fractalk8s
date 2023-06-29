@@ -1,16 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"log"
 	"math"
 	"math/big"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/alitto/pond"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -44,52 +39,6 @@ func calc2(client *http.Client, x, y []*big.Float, iter int) []int {
 	return ret
 }
 
-func calc(client *http.Client, x, y []*big.Float, iter int) []int {
-
-	// fmt.Printf("Calc %d values\n", len(x))
-
-	req := ""
-	for i := 0; i < len(x); i++ {
-		if i == 0 {
-			req = fmt.Sprintf("%s,%s,%d", x[i].String(), y[i].String(), iter)
-		} else {
-			req = req + fmt.Sprintf("\n%s,%s,%d", x[i].String(), y[i].String(), iter)
-		}
-	}
-
-	// url := fmt.Sprintf("http://fractalk8s.decepticons.local/iter")
-	url := "http://localhost:8080/iter"
-	r, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(req)))
-	if err != nil {
-		panic(err)
-	}
-
-	resp, err := client.Do(r)
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	ii := strings.Split(string(body), ",")
-	if len(ii) != len(x) {
-		panic(fmt.Sprintf("We requested %d values, but received %d", len(x), len(ii)))
-	}
-
-	ret := make([]int, len(ii))
-	for idx, i := range ii {
-		iter, _ := strconv.Atoi(i)
-		ret[idx] = iter
-	}
-
-	return ret
-}
-
 func init() {
 	for i := range palette {
 		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
@@ -111,6 +60,7 @@ type Game struct {
 	offscreen    *ebiten.Image
 	offscreenPix []byte
 	keys         []ebiten.Key
+	timer        *Metrics
 }
 
 func NewGame(cam Camera) *Game {
@@ -118,6 +68,7 @@ func NewGame(cam Camera) *Game {
 		cam:          cam,
 		offscreen:    ebiten.NewImage(screenWidth, screenHeight),
 		offscreenPix: make([]byte, screenWidth*screenHeight*4),
+		timer:        NewMetrics(),
 	}
 	// Now it is not feasible to call updateOffscreen every frame due to performance.
 	g.updateOffscreen()
@@ -127,18 +78,17 @@ func NewGame(cam Camera) *Game {
 func (gm *Game) updateOffscreen() {
 	pool := pond.New(maxWorkers, maxPoolSize)
 
-	//fmt.Printf("%s\n", gm.cam.Scale.Text('f', 150))
-
 	for y := 0; y < screenHeight; y += chunk {
 		for x := 0; x < screenWidth; x += chunk {
-			pool.Submit(NewWorkerRequest(x, y, gm.cam.X, gm.cam.Y, gm.cam.Scale, gm.offscreenPix))
+			pool.Submit(NewWorkerRequest(x, y, gm.cam.X, gm.cam.Y, gm.cam.Scale, gm.offscreenPix, gm.timer))
 		}
 	}
 
 	go func() {
 		pool.StopAndWait()
-		//gm.cam.Scale.Mul(gm.cam.Scale, big.NewFloat(.95))
-		// fmt.Printf("Perceision: %d\n", gm.cam.Scale.Prec())
+
+		gm.timer.Reset()
+
 		gm.updateOffscreen()
 	}()
 

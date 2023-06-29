@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/big"
 )
 
@@ -38,7 +37,7 @@ func (c Camera) Down() {
 }
 
 func (c Camera) In() {
-	fmt.Printf("%d %s\n", c.Scale.Prec(), c.Scale.Text(byte('f'), 120))
+	// fmt.Printf("%d %s\n", c.Scale.Prec(), c.Scale.Text(byte('f'), 120))
 	c.Scale.Mul(c.Scale, big.NewFloat(.95))
 }
 
