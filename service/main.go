@@ -35,9 +35,16 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 	screenWidth := request.ScreenWidth
 	screenHeight := request.ScreenHeight
 	iter := request.Iter
-	centerX, centerY, size := request.ExtractFloats()
+	// centerX, centerY, size := request.ExtractFloats()
+	centerX := request.CenterX
+	centerY := request.CenterY
+	size := request.Size
 
-	resultIter := make([]byte, chunk*chunk)
+	centerX.SetPrec(centerX.MinPrec())
+	centerY.SetPrec(centerY.MinPrec())
+	size.SetPrec(size.MinPrec())
+
+	resultIter := make([]int, chunk*chunk)
 
 	idx := 0
 	for i := 0; i < chunk; i++ {
@@ -57,7 +64,7 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 			txx.Add(txx, centerX)
 			tyy.Add(tyy, centerY)
 
-			resultIter[idx] = byte(mandelbrot.MandelbrotFloat(txx, tyy, iter))
+			resultIter[idx] = mandelbrot.MandelbrotFloat(txx, tyy, iter)
 			idx++
 		}
 	}

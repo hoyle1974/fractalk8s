@@ -5,4 +5,5 @@ use (
 	./mandelbrot
 	./service
 	./common
+	./temp
 )

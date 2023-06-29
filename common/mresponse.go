@@ -5,11 +5,11 @@ import (
 )
 
 type MResponse struct {
-	Iter     []byte
+	Iter     []int
 	CalcTime time.Duration
 }
 
-func NewMResponse(iter []byte, calcTime time.Duration) MResponse {
+func NewMResponse(iter []int, calcTime time.Duration) MResponse {
 
 	m := MResponse{
 		Iter:     iter,
@@ -19,16 +19,16 @@ func NewMResponse(iter []byte, calcTime time.Duration) MResponse {
 	return m
 }
 
-func (m MResponse) Extract() ([]byte, time.Duration) {
+func (m MResponse) Extract() ([]int, time.Duration) {
 	return m.Iter, m.CalcTime
 }
 
 func (m MResponse) ToBytes() []byte {
-	return writeAsBytes(m)
+	return writeAsBytes(m, compressResponse)
 }
 
 func NewMResponseFromBytes(b []byte) MResponse {
 	m := MResponse{}
-	readAsBytes(b, &m)
+	readAsBytes(b, &m, compressResponse)
 	return m
 }

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"math/big"
 	"os"
+	"time"
 
 	"github.com/alitto/pond"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -14,8 +16,8 @@ import (
 const (
 	screenWidth  = 640
 	screenHeight = 640
-	maxIt        = byte(255)
-	chunk        = 16
+	maxIt        = 255
+	chunk        = 32
 	maxPoolSize  = (screenWidth/chunk)*(screenHeight/chunk) + 1
 	maxWorkers   = 64
 )
@@ -43,7 +45,7 @@ func init() {
 	}
 }
 
-func color(it byte) (r, g, b byte) {
+func color(it int) (r, g, b byte) {
 	it = maxIt - it
 
 	if it == maxIt {
@@ -54,19 +56,19 @@ func color(it byte) (r, g, b byte) {
 }
 
 type Game struct {
-	cam          Camera
+	cam          *Camera
 	offscreen    *ebiten.Image
 	offscreenPix []byte
 	keys         []ebiten.Key
-	timer        *Metrics
+	metrics      *Metrics
 }
 
-func NewGame(cam Camera) *Game {
+func NewGame(cam *Camera) *Game {
 	g := &Game{
 		cam:          cam,
 		offscreen:    ebiten.NewImage(screenWidth, screenHeight),
 		offscreenPix: make([]byte, screenWidth*screenHeight*4),
-		timer:        NewMetrics(),
+		metrics:      NewMetrics(),
 	}
 	// Now it is not feasible to call updateOffscreen every frame due to performance.
 	g.updateOffscreen()
@@ -78,15 +80,23 @@ func (gm *Game) updateOffscreen() {
 
 	for y := 0; y < screenHeight; y += chunk {
 		for x := 0; x < screenWidth; x += chunk {
-			pool.Submit(NewWorkerRequest(x, y, gm.cam.X, gm.cam.Y, gm.cam.Scale, gm.offscreenPix, gm.timer))
+			pool.Submit(NewWorkerRequest(x, y, gm.cam.X, gm.cam.Y, gm.cam.Scale, gm.offscreenPix, gm.metrics))
 		}
 	}
 
 	go func() {
 		pool.StopAndWait()
 
-		gm.timer.Reset()
+		gm.metrics.Reset()
+		fmt.Printf("X,Y = %s %s\n", gm.cam.X.Text('f', int(gm.cam.X.MinPrec())), gm.cam.Y.Text('f', int(gm.cam.Y.MinPrec())))
+		fmt.Printf("S = %s\n", gm.cam.Scale.Text('f', int(gm.cam.Scale.MinPrec())))
 
+		for {
+			if gm.cam.IsDirty() {
+				break
+			}
+			time.Sleep(time.Second)
+		}
 		gm.updateOffscreen()
 	}()
 
@@ -97,27 +107,21 @@ func (g *Game) Update() error {
 
 	for _, key := range g.keys {
 		if key == ebiten.KeyArrowLeft {
-			// fmt.Println("LEFT")
 			g.cam.Left()
 		}
 		if key == ebiten.KeyArrowRight {
-			// fmt.Println("RIGHT")
 			g.cam.Right()
 		}
 		if key == ebiten.KeyArrowUp {
-			// fmt.Println("UP")
 			g.cam.Up()
 		}
 		if key == ebiten.KeyArrowDown {
-			// fmt.Println("DOWN")
 			g.cam.Down()
 		}
 		if key == ebiten.KeySpace {
-			// fmt.Println("ZOOM")
 			g.cam.In()
 		}
 		if key == ebiten.KeyShift {
-			// fmt.Println("ZOOM")
 			g.cam.Out()
 		}
 		if key == ebiten.KeyEscape {
@@ -133,13 +137,20 @@ var t = 0
 func (g *Game) Draw(screen *ebiten.Image) {
 	t++
 	if t > 10 {
-		p := 4 * (((screenHeight / 2) * screenWidth) + (screenWidth / 2))
-		g.offscreenPix[p] = 0xff
-		g.offscreenPix[p+1] = 0xff
-		g.offscreenPix[p+2] = 0xff
-		g.offscreenPix[p+3] = 0xff
+		for x := -10; x < 10; x++ {
+			for y := -10; y < 10; y++ {
+				if x == 0 || y == 0 {
+					p := 4 * ((((screenHeight / 2) + y) * screenWidth) + ((screenWidth / 2) + x))
+					g.offscreenPix[p] = 0xff - g.offscreenPix[p]
+					g.offscreenPix[p+1] = 0xff - g.offscreenPix[p+1]
+					g.offscreenPix[p+2] = 0xff - g.offscreenPix[p+2]
+					g.offscreenPix[p+3] = 0xff
 
-		g.offscreen.WritePixels(g.offscreenPix)
+					g.offscreen.WritePixels(g.offscreenPix)
+
+				}
+			}
+		}
 		t = 0
 	}
 
@@ -151,19 +162,20 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	// temp := new(big.Float).SetInt64(4).SetPrec(1)
-	// for {
-	// 	temp.Mul(temp, new(big.Float).SetInt64(2))
-	// 	fmt.Printf("%d : %d : %s\n", temp.Prec(), temp.MinPrec(), temp.String())
-	// }
 
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Mandelbrot (Ebitengine Demo)")
 
-	x := big.NewFloat(-1.94015736280000)
-	y := big.NewFloat(-8.66e-7)
+	// x := big.NewFloat(-1.94015736280000)
+	// y := big.NewFloat(-8.66e-7)
 
-	cam := NewCamera(x, y, new(big.Float).SetInt64(4).SetPrec(16))
+	x, _, _ := new(big.Float).Parse("-1.940158125066515110802223095951715258162359949311875725036274748603942405522637670856056502088904380798339843750", 10)
+	y, _, _ := new(big.Float).Parse("-0.000000862709948779723462565049404001370272990386055543158893226625069661217537486663787", 10)
+
+	x.SetPrec(1000)
+	y.SetPrec(1000)
+
+	cam := NewCamera(x, y, new(big.Float).SetInt64(4).SetPrec(1000))
 
 	if err := ebiten.RunGame(NewGame(cam)); err != nil {
 		log.Fatal(err)

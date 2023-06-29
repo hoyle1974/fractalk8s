@@ -19,7 +19,7 @@ var client = &http.Client{
 	Timeout: 60 * time.Second,
 }
 
-func POST(client *http.Client, req common.MRequest) ([]byte, time.Duration, time.Duration, int, int) {
+func POST(client *http.Client, req common.MRequest) ([]int, time.Duration, time.Duration, int, int) {
 	start := time.Now()
 
 	url := "http://localhost:8080/iter"
