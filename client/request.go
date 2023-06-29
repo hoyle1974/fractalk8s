@@ -23,10 +23,10 @@ func POST(client *http.Client, req common.MRequest) ([]byte, time.Duration, time
 	start := time.Now()
 
 	url := "http://localhost:8080/iter"
-	reqString := req.ToJsonString()
-	reqSize := len(reqString)
+	reqBytes := req.ToBytes()
+	reqSize := len(reqBytes)
 
-	r, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(reqString)))
+	r, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBytes))
 	if err != nil {
 		panic(err)
 	}

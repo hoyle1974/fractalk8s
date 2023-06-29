@@ -22,7 +22,7 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Error reading body")
 	}
 
-	request := common.NewMRequestFromJson(string(body))
+	request := common.NewMRequestFromBytes(body)
 	//cx, cy, iter := request.Extract()
 
 	//for idx, _ := range cx {

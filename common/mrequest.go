@@ -1,7 +1,6 @@
 package common
 
 import (
-	"encoding/json"
 	"math/big"
 )
 
@@ -33,16 +32,26 @@ func (m MRequest) ExtractFloats() (*big.Float, *big.Float, *big.Float) {
 	return cx, cy, s
 }
 
-func (m MRequest) ToJsonString() string {
-	jsonString, _ := json.Marshal(m)
-	return string(jsonString)
+// func (m MRequest) ToJsonString() string {
+// 	jsonString, _ := json.Marshal(m)
+// 	return string(jsonString)
+// }
+
+// func NewMRequestFromJson(jsonString string) MRequest {
+// 	m := MRequest{}
+// 	err := json.Unmarshal([]byte(jsonString), &m)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return m
+// }
+
+func (m MRequest) ToBytes() []byte {
+	return writeAsBytes(m)
 }
 
-func NewMRequestFromJson(jsonString string) MRequest {
+func NewMRequestFromBytes(b []byte) MRequest {
 	m := MRequest{}
-	err := json.Unmarshal([]byte(jsonString), &m)
-	if err != nil {
-		panic(err)
-	}
+	readAsBytes(b, &m)
 	return m
 }
