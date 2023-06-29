@@ -47,9 +47,9 @@ func (t *Metrics) Reset() {
 	}
 	fmt.Printf("\n")
 
-	fmt.Printf("Total Megabytes: ")
+	fmt.Printf("Total Kilobytes: ")
 	for key, value := range t.bytes {
-		fmt.Printf("%s=%.2f ", key, (float64(value) / 1024.0 / 1024.0))
+		fmt.Printf("%s=%.2f ", key, (float64(value) / 1024.0))
 	}
 	fmt.Printf("\n")
 

@@ -37,7 +37,7 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 	iter := request.Iter
 	centerX, centerY, size := request.ExtractFloats()
 
-	resultIter := make([]int, chunk*chunk)
+	resultIter := make([]byte, chunk*chunk)
 
 	idx := 0
 	for i := 0; i < chunk; i++ {
@@ -57,7 +57,7 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 			txx.Add(txx, centerX)
 			tyy.Add(tyy, centerY)
 
-			resultIter[idx] = mandelbrot.MandelbrotFloat(txx, tyy, iter)
+			resultIter[idx] = byte(mandelbrot.MandelbrotFloat(txx, tyy, iter))
 			idx++
 		}
 	}
@@ -66,7 +66,7 @@ func iterhandler(w http.ResponseWriter, r *http.Request) {
 	calcTime := end.Sub(start)
 	response := common.NewMResponse(resultIter, calcTime)
 
-	fmt.Fprintf(w, "%s", response.ToJsonString())
+	fmt.Fprintf(w, "%s", response.ToBytes())
 }
 
 func main() {

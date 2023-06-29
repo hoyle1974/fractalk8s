@@ -4,19 +4,17 @@ import (
 	"log"
 	"math"
 	"math/big"
-	"net/http"
 	"os"
 
 	"github.com/alitto/pond"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hoyle1974/fractalk8s/mandelbrot"
 )
 
 const (
 	screenWidth  = 640
 	screenHeight = 640
-	maxIt        = 256
+	maxIt        = byte(255)
 	chunk        = 16
 	maxPoolSize  = (screenWidth/chunk)*(screenHeight/chunk) + 1
 	maxWorkers   = 64
@@ -26,18 +24,18 @@ var (
 	palette [maxIt]byte
 )
 
-func calc2(client *http.Client, x, y []*big.Float, iter int) []int {
-	ret := make([]int, len(x))
-	for idx, _ := range x {
-		ret[idx] = mandelbrot.MandelbrotFloat(x[idx], y[idx], iter)
+// func calc2(client *http.Client, x, y []*big.Float, iter int) []int {
+// 	ret := make([]int, len(x))
+// 	for idx, _ := range x {
+// 		ret[idx] = mandelbrot.MandelbrotFloat(x[idx], y[idx], iter)
 
-		// cx, _ := x[idx].Float64()
-		// cy, _ := y[idx].Float64()
-		// ret[idx] = mandelbrot.MandelbrotFast(cx, cy, iter)
-	}
+// 		// cx, _ := x[idx].Float64()
+// 		// cy, _ := y[idx].Float64()
+// 		// ret[idx] = mandelbrot.MandelbrotFast(cx, cy, iter)
+// 	}
 
-	return ret
-}
+// 	return ret
+// }
 
 func init() {
 	for i := range palette {
@@ -45,7 +43,7 @@ func init() {
 	}
 }
 
-func color(it int) (r, g, b byte) {
+func color(it byte) (r, g, b byte) {
 	it = maxIt - it
 
 	if it == maxIt {

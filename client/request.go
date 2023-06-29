@@ -19,7 +19,7 @@ var client = &http.Client{
 	Timeout: 60 * time.Second,
 }
 
-func POST(client *http.Client, req common.MRequest) ([]int, time.Duration, time.Duration, int, int) {
+func POST(client *http.Client, req common.MRequest) ([]byte, time.Duration, time.Duration, int, int) {
 	start := time.Now()
 
 	url := "http://localhost:8080/iter"
@@ -43,90 +43,19 @@ func POST(client *http.Client, req common.MRequest) ([]int, time.Duration, time.
 		panic(err)
 	}
 
-	response := common.NewMResponseFromJson(string(body))
+	response := common.NewMResponseFromBytes(body)
 	respSize := len(body)
 
 	duration := time.Since(start)
 
 	return response.Iter, response.CalcTime, duration, reqSize, respSize
 }
-
-/*
-func calc(client *http.Client, x, y []*big.Float, iter int) ([]int, time.Duration, time.Duration, int, int) {
-
-	start := time.Now()
-
-	req := common.NewMRequest(x, y, iter)
-
-	// url := fmt.Sprintf("http://fractalk8s.decepticons.local/iter")
-	url := "http://localhost:8080/iter"
-
-	reqString := req.ToJsonString()
-	reqSize := len(reqString)
-
-	r, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(reqString)))
-	if err != nil {
-		panic(err)
-	}
-
-	resp, err := client.Do(r)
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	response := common.NewMResponseFromJson(string(body))
-	respSize := len(body)
-
-	duration := time.Since(start)
-
-	return response.Iter, response.CalcTime, duration, reqSize, respSize
-}
-*/
 
 func NewWorkerRequest(x, y int, centerX, centerY, size *big.Float, out []byte, metrics *Metrics) func() {
 	return func() {
 
-		request := common.NewMRequest(x, y, chunk, screenWidth, screenHeight, centerX, centerY, size, 128)
+		request := common.NewMRequest(x, y, chunk, screenWidth, screenHeight, centerX, centerY, size, 255)
 		it, cd, rd, reqs, resps := POST(client, request)
-
-		/*
-				ti := 0
-				xx := make([]*big.Float, chunk*chunk)
-				yy := make([]*big.Float, chunk*chunk)
-
-				for i := 0; i < chunk; i++ {
-					for j := 0; j < chunk; j++ {
-						// Center around scrren
-						// txx := big.NewRat(int64(x+i-(screenWidth/2)), screenWidth)
-						txx := big.NewFloat(float64(x+i-(screenWidth/2)) / float64(screenWidth))
-
-						// tyy := big.NewRat(int64(y+j-(screenHeight/2)), screenHeight)
-						tyy := big.NewFloat(float64(y+j-(screenHeight/2)) / float64(screenHeight))
-
-						// scale
-						txx = big.NewFloat(0).SetPrec(0).Mul(txx, size)
-						tyy = big.NewFloat(0).SetPrec(0).Mul(tyy, size)
-
-						// Offset
-						txx.Add(txx, centerX)
-						tyy.Add(tyy, centerY)
-
-						xx[ti] = txx
-						yy[ti] = tyy
-
-						ti++
-					}
-				}
-
-			it, cd, rd, reqs, resps := calc(client, xx, yy, 128)
-		*/
 
 		metrics.AddDuration("calc", cd)
 		metrics.AddDuration("request", rd)
